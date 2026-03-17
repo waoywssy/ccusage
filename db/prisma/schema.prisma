@@ -1,0 +1,31 @@
+// Prisma Client 生成器配置
+generator client {
+  provider = "prisma-client-js" // 使用 JavaScript/TypeScript 客户端
+}
+
+// 数据源配置
+datasource db {
+  provider = "postgresql"          // 使用 PostgreSQL 数据库
+  url      = env("DATABASE_URL")   // 从环境变量读取数据库连接 URL
+}
+
+// 用户表
+model User {
+  id        String   @id @default(cuid())  // 主键，使用 cuid 自动生成唯一 ID
+  email     String   @unique               // 邮箱，唯一约束
+  password  String                         // 密码（应存储哈希值）
+  createdAt DateTime @default(now())       // 创建时间，默认当前时间
+  todos     Todo[]                         // 关联的待办事项列表
+}
+
+// 待办事项表
+model Todo {
+  id        String   @id @default(cuid())  // 主键，使用 cuid 自动生成唯一 ID
+  title     String                         // 待办事项标题
+  done      Boolean  @default(false)       // 完成状态，默认未完成
+  userId    String                         // 所属用户 ID（外键）
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)  // 关联用户，级联删除
+  createdAt DateTime @default(now())       // 创建时间，默认当前时间
+
+  @@index([userId])                        // 为 userId 创建索引，优化查询性能
+}
