@@ -66,14 +66,16 @@ export function createTodoApi(options = {}) {
     const userId = auth.user.id;
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
+    const isCollectionRoute = path === "/src/api/todos" || path === "/todos" || path === "/api/todos";
+    const todoIdMatch = path.match(/^\/(?:src\/api|api)?\/todos\/([^/]+)$/) ?? path.match(/^\/todos\/([^/]+)$/);
 
-    if (path === "/src/api/todos" && request.method === "GET") {
+    if (isCollectionRoute && request.method === "GET") {
       return jsonResponse(200, {
         data: store.listByUser(userId).map(serializeTodo)
       });
     }
 
-    if (path === "/src/api/todos" && request.method === "POST") {
+    if (isCollectionRoute && request.method === "POST") {
       const payload = await readJson(request);
       const error = validateCreatePayload(payload);
 
@@ -90,19 +92,21 @@ export function createTodoApi(options = {}) {
       return jsonResponse(201, { data: serializeTodo(todo) });
     }
 
-    const todoIdMatch = path.match(/^\/src\/api\/todos\/([^/]+)$/);
-
-    if (todoIdMatch && request.method === "PUT") {
+    if (todoIdMatch && (request.method === "PUT" || request.method === "PATCH")) {
       const payload = await readJson(request);
-      const error = validateUpdatePayload(payload);
+      const normalizedPayload = {
+        ...payload,
+        done: payload?.done ?? payload?.completed
+      };
+      const error = validateUpdatePayload(normalizedPayload);
 
       if (error) {
         return jsonResponse(400, { error });
       }
 
       const todo = store.update(todoIdMatch[1], userId, {
-        title: payload.title?.trim(),
-        done: payload.done
+        title: normalizedPayload.title?.trim(),
+        done: normalizedPayload.done
       });
 
       if (!todo) {

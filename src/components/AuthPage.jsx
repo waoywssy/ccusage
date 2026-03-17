@@ -7,7 +7,6 @@ const fieldsByMode = {
     { name: 'password', type: 'password', label: 'Password', placeholder: 'Enter your password' },
   ],
   register: [
-    { name: 'name', type: 'text', label: 'Full Name', placeholder: 'Mila Hart' },
     { name: 'email', type: 'email', label: 'Email Address', placeholder: 'mila@example.com' },
     { name: 'password', type: 'password', label: 'Password', placeholder: 'Create a password' },
   ],
@@ -25,7 +24,7 @@ function AuthPage({
   appError,
 }) {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 

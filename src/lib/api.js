@@ -56,7 +56,7 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     throw new ApiError(
-      payload?.message || `Request failed with status ${response.status}`,
+      payload?.error || payload?.message || `Request failed with status ${response.status}`,
       response.status,
       payload,
     );
@@ -70,7 +70,13 @@ function normalizeUser(data, fallback = {}) {
 
   return {
     id: source.id ?? source._id ?? fallback.id ?? null,
-    name: source.name ?? source.username ?? fallback.name ?? '',
+    name:
+      source.name ??
+      source.username ??
+      fallback.name ??
+      source.email?.split('@')[0] ??
+      fallback.email?.split('@')[0] ??
+      '',
     email: source.email ?? fallback.email ?? '',
   };
 }
