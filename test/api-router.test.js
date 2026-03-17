@@ -82,3 +82,67 @@ test("registered auth token can access the todo API", async () => {
     }
   });
 });
+
+test("supports /api auth routes used by the browser client", async () => {
+  const api = createApiRouter({
+    userRepository: createUserRepository(),
+    jwtSecret: "test-secret",
+    saltRounds: 4
+  });
+
+  const registerResponse = await api(
+    new Request("http://local/api/auth/register", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        email: "nora@example.com",
+        password: "password123"
+      })
+    })
+  );
+
+  assert.equal(registerResponse.status, 201);
+
+  const loginResponse = await api(
+    new Request("http://local/api/auth/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        email: "nora@example.com",
+        password: "password123"
+      })
+    })
+  );
+  const loginPayload = await readJson(loginResponse);
+
+  assert.equal(loginResponse.status, 200);
+  assert.equal(typeof loginPayload.token, "string");
+
+  const meResponse = await api(
+    new Request("http://local/api/auth/me", {
+      method: "GET",
+      headers: {
+        authorization: `Bearer ${loginPayload.token}`
+      }
+    })
+  );
+
+  assert.equal(meResponse.status, 200);
+  assert.deepEqual(await readJson(meResponse), {
+    user: {
+      id: loginPayload.user.id,
+      email: "nora@example.com",
+      createdAt: loginPayload.user.createdAt
+    }
+  });
+});
+
+test("requires an explicit JWT secret", async () => {
+  assert.throws(() => createApiRouter({ userRepository: createUserRepository() }), {
+    message: "A non-empty JWT secret is required."
+  });
+});

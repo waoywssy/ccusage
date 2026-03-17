@@ -1,11 +1,12 @@
 import jwt from "jsonwebtoken";
+import { requireJwtSecret } from "../jwt-config.js";
 
 function jsonResponse(status, body) {
   return Response.json(body, { status });
 }
 
 export function createJwtMiddleware(options = {}) {
-  const secret = options.secret ?? "dev-secret";
+  const secret = requireJwtSecret(options.secret);
 
   return async function requireAuth(request) {
     const authHeader = request.headers.get("authorization");

@@ -1,22 +1,24 @@
 import { createAuthApi } from "./auth/index.js";
+import { requireJwtSecret } from "./jwt-config.js";
 import { createTodoApi } from "./todos/index.js";
 
 export function createApiRouter(options = {}) {
+  const jwtSecret = requireJwtSecret(options.jwtSecret);
   const authApi = createAuthApi({
     userRepository: options.userRepository,
-    jwtSecret: options.jwtSecret,
+    jwtSecret,
     jwtExpiresIn: options.jwtExpiresIn,
     saltRounds: options.saltRounds
   });
   const todoApi = createTodoApi({
     store: options.todoStore,
-    jwtSecret: options.jwtSecret
+    jwtSecret
   });
 
   return async function handleApiRequest(request) {
     const pathname = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
 
-    if (pathname.startsWith("/auth") || pathname.startsWith("/src/api/auth")) {
+    if (pathname.startsWith("/auth") || pathname.startsWith("/api/auth") || pathname.startsWith("/src/api/auth")) {
       return authApi(request);
     }
 

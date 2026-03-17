@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { requireJwtSecret } from "../jwt-config.js";
 
 /**
  * @typedef {Object} User
@@ -24,7 +25,6 @@ import jwt from "jsonwebtoken";
  * @property {number} [saltRounds]
  */
 
-const DEFAULT_JWT_SECRET = "dev-secret";
 const DEFAULT_JWT_EXPIRES_IN = "7d";
 const DEFAULT_SALT_ROUNDS = 12;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -59,7 +59,7 @@ function createToken(user, options) {
       sub: user.id,
       email: user.email
     },
-    options.jwtSecret ?? DEFAULT_JWT_SECRET,
+    requireJwtSecret(options.jwtSecret),
     {
       expiresIn: options.jwtExpiresIn ?? DEFAULT_JWT_EXPIRES_IN
     }
@@ -114,7 +114,7 @@ function readBearerToken(request) {
 
 function verifyToken(token, options) {
   try {
-    return jwt.verify(token, options.jwtSecret ?? DEFAULT_JWT_SECRET);
+    return jwt.verify(token, requireJwtSecret(options.jwtSecret));
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       return { error: jsonResponse(401, { error: "Token expired." }) };
@@ -130,6 +130,9 @@ function matchPath(pathname) {
     "/src/api/auth/register",
     "/src/api/auth/login",
     "/src/api/auth/me",
+    "/api/auth/register",
+    "/api/auth/login",
+    "/api/auth/me",
     "/auth/register",
     "/auth/login",
     "/auth/me"
