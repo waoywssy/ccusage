@@ -28,6 +28,17 @@ import { requireJwtSecret } from "../jwt-config.js";
 const DEFAULT_JWT_EXPIRES_IN = "7d";
 const DEFAULT_SALT_ROUNDS = 12;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SUPPORTED_PATHS = new Set([
+  "/src/api/auth/register",
+  "/src/api/auth/login",
+  "/src/api/auth/me",
+  "/api/auth/register",
+  "/api/auth/login",
+  "/api/auth/me",
+  "/auth/register",
+  "/auth/login",
+  "/auth/me"
+]);
 
 function jsonResponse(status, body) {
   return Response.json(body, { status });
@@ -54,12 +65,14 @@ function toPublicUser(user) {
 }
 
 function createToken(user, options) {
+  const secret = requireJwtSecret(options.jwtSecret);
+
   return jwt.sign(
     {
       sub: user.id,
       email: user.email
     },
-    requireJwtSecret(options.jwtSecret),
+    secret,
     {
       expiresIn: options.jwtExpiresIn ?? DEFAULT_JWT_EXPIRES_IN
     }
@@ -126,19 +139,8 @@ function verifyToken(token, options) {
 
 function matchPath(pathname) {
   const normalizedPath = pathname.replace(/\/+$/, "") || "/";
-  const supportedPaths = new Set([
-    "/src/api/auth/register",
-    "/src/api/auth/login",
-    "/src/api/auth/me",
-    "/api/auth/register",
-    "/api/auth/login",
-    "/api/auth/me",
-    "/auth/register",
-    "/auth/login",
-    "/auth/me"
-  ]);
 
-  if (!supportedPaths.has(normalizedPath)) {
+  if (!SUPPORTED_PATHS.has(normalizedPath)) {
     return null;
   }
 

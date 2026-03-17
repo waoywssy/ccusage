@@ -2,6 +2,13 @@ import { createAuthApi } from "./auth/index.js";
 import { requireJwtSecret } from "./jwt-config.js";
 import { createTodoApi } from "./todos/index.js";
 
+const AUTH_ROUTE_PREFIXES = ["/auth", "/api/auth", "/src/api/auth"];
+const TODO_ROUTE_PREFIXES = ["/todos", "/api/todos", "/src/api/todos"];
+
+function matchesRoutePrefix(pathname, prefixes) {
+  return prefixes.some((prefix) => pathname.startsWith(prefix));
+}
+
 export function createApiRouter(options = {}) {
   const jwtSecret = requireJwtSecret(options.jwtSecret);
   const authApi = createAuthApi({
@@ -18,11 +25,11 @@ export function createApiRouter(options = {}) {
   return async function handleApiRequest(request) {
     const pathname = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
 
-    if (pathname.startsWith("/auth") || pathname.startsWith("/api/auth") || pathname.startsWith("/src/api/auth")) {
+    if (matchesRoutePrefix(pathname, AUTH_ROUTE_PREFIXES)) {
       return authApi(request);
     }
 
-    if (pathname.startsWith("/todos") || pathname.startsWith("/api/todos") || pathname.startsWith("/src/api/todos")) {
+    if (matchesRoutePrefix(pathname, TODO_ROUTE_PREFIXES)) {
       return todoApi(request);
     }
 

@@ -1,12 +1,23 @@
-import { createApiRouter } from "./index.js";
 import { createInMemoryUserRepository } from "./dev-user-repository.js";
+import { createApiRouter } from "./index.js";
 import { requireJwtSecret } from "./jwt-config.js";
+
+const API_PREFIX = "/api/";
+const BODYLESS_METHODS = new Set(["GET", "HEAD"]);
 
 function createNodeRequestUrl(req) {
   const protocol = req.headers["x-forwarded-proto"] ?? "http";
   const host = req.headers.host ?? "localhost:5173";
 
   return new URL(req.url ?? "/", `${protocol}://${host}`);
+}
+
+function isBodylessMethod(method) {
+  return BODYLESS_METHODS.has(method ?? "GET");
+}
+
+function isApiRequest(url) {
+  return typeof url === "string" && url.startsWith(API_PREFIX);
 }
 
 async function readRequestBody(req) {
@@ -16,15 +27,11 @@ async function readRequestBody(req) {
     chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
   }
 
-  if (chunks.length === 0) {
-    return undefined;
-  }
-
-  return Buffer.concat(chunks);
+  return chunks.length > 0 ? Buffer.concat(chunks) : undefined;
 }
 
 async function toFetchRequest(req) {
-  const body = req.method === "GET" || req.method === "HEAD"
+  const body = isBodylessMethod(req.method)
     ? undefined
     : await readRequestBody(req);
 
@@ -43,8 +50,12 @@ async function sendFetchResponse(fetchResponse, res) {
     res.setHeader(key, value);
   });
 
-  const body = fetchResponse.body ? Buffer.from(await fetchResponse.arrayBuffer()) : Buffer.alloc(0);
-  res.end(body);
+  if (!fetchResponse.body) {
+    res.end();
+    return;
+  }
+
+  res.end(Buffer.from(await fetchResponse.arrayBuffer()));
 }
 
 export function createApiPlugin(options = {}) {
@@ -65,7 +76,7 @@ export function createApiPlugin(options = {}) {
   }
 
   async function handle(req, res, next) {
-    if (!req.url?.startsWith("/api/")) {
+    if (!isApiRequest(req.url)) {
       next();
       return;
     }
